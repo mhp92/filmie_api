@@ -39,8 +39,6 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsOwnerOrReadOnly, IsAuthenticatedOrReadOnly]
 
-
-
     def get_queryset(self):
         qs = Users.objects.all()
         query = self.request.GET.get('name')
@@ -48,8 +46,6 @@ class UserViewSet(viewsets.ModelViewSet):
             qs = qs.filter(title__icontains=query)
         return qs 
 
-
-  
 
 # router/ & api/ doing the same 
 

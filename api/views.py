@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model # If used custom user model
 from rest_framework import generics, mixins, viewsets
 from rest_framework import serializers
 
-
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import (
@@ -37,7 +37,8 @@ class WatchlistTestViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = Users.objects.all()
     serializer_class = UserSerializer
-    # password = serializers.CharField(write_only=True)
+    permission_classes = [IsOwnerOrReadOnly, IsAuthenticatedOrReadOnly]
+
 
 
     def get_queryset(self):
@@ -96,27 +97,12 @@ class MovieWatchlistViewSet(viewsets.ModelViewSet):
 
 # Custom ViewSet
 
-class WatchlistViewSet(viewsets.ViewSet):
+# class WatchlistViewSet(viewsets.ViewSet):
 
-    def list(self, request):
-        queryset = Watchlists.objects.all()
-        serializer = WatchlistSerializer(queryset, many=True)
-        return Response(serializer.data)
-        
-    def get_queryset(self):
-        qs = Watchlists.objects.all()
-        query = self.request.GET.get('type_id')
-        if query is not None:
-            qs = qs.filter(type_id__exact=query)
-        return qs 
-
-
-
-# class WatchlistViewSet(viewsets.ModelViewSet):
-#     queryset = Watchlists.objects.all()
-#     serializer_class = WatchlistSerializer
-#     # pagination_class = WatchListLimitOffsetPagination # see pagination.py
-#     permission_classes = [IsOwnerOrReadOnly]
+#     def list(self, request):
+#         queryset = Watchlists.objects.all()
+#         serializer = WatchlistSerializer(queryset, many=True)
+#         return Response(serializer.data)
 
 #     def get_queryset(self):
 #         qs = Watchlists.objects.all()
@@ -125,39 +111,55 @@ class WatchlistViewSet(viewsets.ViewSet):
 #             qs = qs.filter(type_id__exact=query)
 #         return qs 
 
-#     # assing request.user to new created watchlist
-#     # it works! user_id in watchlist is assigned by the logged in user, but filmie account is not connected now 
-#     def perform_create(self, serializer):
-
-#         user_id = self.request.user.id
-
-#         serializer.save(user_id=user_id)
 
 
+class WatchlistViewSet(viewsets.ModelViewSet):
+    queryset = Watchlists.objects.all()
+    serializer_class = WatchlistSerializer
+    # pagination_class = WatchListLimitOffsetPagination # see pagination.py
+    permission_classes = [IsOwnerOrReadOnly, IsAuthenticatedOrReadOnly]
+    # authentication_classes = [TokenAuthentication] see youtube watchlist DRF Authentication
 
-#     @action(detail=True, methods=['GET'])
-#     def movies (self, request, pk=None):
+    def get_queryset(self):
+        qs = Watchlists.objects.all()
+        query = self.request.GET.get('type_id')
+        if query is not None:
+            qs = qs.filter(type_id__exact=query)
+        return qs 
+
+    # assing request.user to new created watchlist
+    # it works! user_id in watchlist is assigned by the logged in user, but filmie account is not connected now 
+    def perform_create(self, serializer):
+
+        user_id = self.request.user.id
+
+        serializer.save(user_id=user_id)
+
+
+
+    @action(detail=True, methods=['GET'])
+    def movies (self, request, pk=None):
     
-#         watch_list = get_object_or_404(Watchlists, id=pk)
+        watch_list = get_object_or_404(Watchlists, id=pk)
         
-#         movie_ids = MovieWatchlist.objects.values_list('movie_id', flat=True).filter(watchlist_id=pk)
+        movie_ids = MovieWatchlist.objects.values_list('movie_id', flat=True).filter(watchlist_id=pk)
         
-#         movies = Movies.objects.filter(id__in=movie_ids)
+        movies = Movies.objects.filter(id__in=movie_ids)
 
-#         serializer = MovieSerializer(movies, many=True)
-#         return Response(serializer.data, status=200)
+        serializer = MovieSerializer(movies, many=True)
+        return Response(serializer.data, status=200)
 
 
-#     @action(detail=True, methods=['GET'])
-#     def owner (self, request, pk=None):
+    @action(detail=True, methods=['GET'])
+    def owner (self, request, pk=None):
         
-#         watch_list = get_object_or_404(Watchlists, id=pk)
-#         movie_id = watch_list.user_id
+        watch_list = get_object_or_404(Watchlists, id=pk)
+        movie_id = watch_list.user_id
         
-#         owner = Users.objects.filter(id=movie_id)
+        owner = Users.objects.filter(id=movie_id)
 
-#         serializer = UserSerializer(owner, many=True)
-#         return Response(serializer.data, status=200)
+        serializer = UserSerializer(owner, many=True)
+        return Response(serializer.data, status=200)
         
 
 
